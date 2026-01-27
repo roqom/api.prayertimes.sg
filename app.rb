@@ -29,6 +29,21 @@ helpers do
   end
 end
 
+get "/" do
+  content_type "text/html"
+  <<~HTML
+    <h1>PrayertimesSG API</h1>
+    <p>Status: OK</p>
+    <ul>
+      <li><a href="/api/v1/prayer-times/today">/api/v1/prayer-times/today</a></li>
+      <li><a href="/api/v1/prayer-times?date=2026-01-01">/api/v1/prayer-times?date=YYYY-MM-DD</a></li>
+    </ul>
+    <p></p>
+    <p>Berlime | Bertige | roq0m</p> 
+  HTML
+end
+
+
 # GET /api/v1/prayer-times?date=YYYY-MM-DD
 get "/api/v1/prayer-times" do
   date = params["date"] or error!(400, "Missing ?date=YYYY-MM-DD")
