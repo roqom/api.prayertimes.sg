@@ -38,8 +38,7 @@ get "/" do
       <li><a href="/api/v1/prayer-times/today">/api/v1/prayer-times/today</a></li>
       <li><a href="/api/v1/prayer-times?date=2026-01-01">/api/v1/prayer-times?date=YYYY-MM-DD</a></li>
     </ul>
-    <p></p>
-    <p>Berlime | Bertige | roq0m</p> 
+    <p>by ROQOM</p> 
   HTML
 end
 
