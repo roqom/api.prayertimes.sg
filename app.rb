@@ -25,7 +25,7 @@ helpers do
   end
 
   def to_ampm(hhmm)
-    Time.strptime(hhmm, "%H:%M").strftime("%-I:%M %p")
+    Time.strptime(hhmm, "%H:%M").strftime("%-I:%M")
   end
 end
 
@@ -38,7 +38,7 @@ get "/" do
       <li><a href="/api/v1/prayer-times/today">/api/v1/prayer-times/today</a></li>
       <li><a href="/api/v1/prayer-times?date=2026-01-01">/api/v1/prayer-times?date=YYYY-MM-DD</a></li>
     </ul>
-    <p>by ROQOM</p> 
+    <p>© 2026 ROQOM</p> 
   HTML
 end
 
