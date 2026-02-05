@@ -25,7 +25,7 @@ helpers do
   end
 
   def to_ampm(hhmm)
-    Time.strptime(hhmm, "%H:%M").strftime("%-I:%M")
+    Time.strptime(hhmm, "%H:%M").strftime("%-I:%M %p")
   end
 end
 
