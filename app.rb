@@ -74,5 +74,26 @@ end
 # GET /api/v1/prayer-times/today (Singapore)
 get "/api/v1/prayer-times/today" do
   today = Time.now.getlocal("+08:00").to_date.to_s
-  redirect to("/api/v1/prayer-times?date=#{today}")
+
+  row = T.where(date: today).first or error!(404, "No data for #{today}")
+
+  times = {
+    subuh: row[:subuh],
+    syuruk: row[:syuruk],
+    zohor: row[:zohor],
+    asar: row[:asar],
+    maghrib: row[:maghrib],
+    isyak: row[:isyak]
+  }
+
+  headers "Cache-Control" => "public, max-age=3600"
+
+  {
+    date: today,
+    day: day_name(today),
+    friendly_date: friendly_date(today),
+    hijri_date: row[:hijri_date_text],
+    times: times,
+    times_ampm: times.transform_values { |v| to_ampm(v) }
+  }.to_json
 end
