@@ -59,7 +59,9 @@ get "/api/v1/prayer-times" do
     isyak: row[:isyak]
   }
 
-  headers "Cache-Control" => "public, max-age=3600"
+  # Cache with ETag for proper revalidation (fixes Firefox midnight issue)
+  headers "Cache-Control" => "public, max-age=3600, must-revalidate",
+          "ETag" => "\"prayer-times-#{date}\""
 
   {
     date: date,
@@ -86,7 +88,9 @@ get "/api/v1/prayer-times/today" do
     isyak: row[:isyak]
   }
 
-  headers "Cache-Control" => "public, max-age=3600"
+  # Cache with ETag for proper revalidation (fixes Firefox midnight issue)
+  headers "Cache-Control" => "public, max-age=3600, must-revalidate",
+          "ETag" => "\"prayer-times-#{today}\""
 
   {
     date: today,
