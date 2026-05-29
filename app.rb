@@ -359,6 +359,10 @@ get "/health" do
               <span class="info-label">Records Loaded</span>
               <span class="info-value">#{cov[:total_records]} days</span>
             </div>
+            <div class="info-row">
+              <span class="info-label">Latest Available Date</span>
+              <span class="info-value">#{cov[:end_date] ? friendly_date(cov[:end_date]) : "No data"}</span>
+            </div>
           </div>
         </section>
 
@@ -394,7 +398,7 @@ get "/health" do
               <span class="info-value">#{h[:response_time_ms]} ms</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Last Checked</span>
+              <span class="info-label">Checked At</span>
               <span class="info-value">#{h[:checked_at]}</span>
             </div>
           </div>
