@@ -7,6 +7,22 @@ require "sequel"
 DB = Sequel.sqlite(ENV.fetch("DB_PATH", "db/dev.sqlite3"))
 T  = DB[:prayer_times_sg]
 
+# Shared base CSS used by every HTML page.
+SHARED_CSS = <<~CSS
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; color: #111827; line-height: 1.6; }
+  a { text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h2 { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 0.75rem; }
+  .info-grid { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6; font-size: 0.875rem; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: #6b7280; }
+  .info-value { font-weight: 500; text-align: right; }
+  .site-footer { text-align: center; padding: 2rem 1.5rem 1.5rem; }
+  .site-footer small { font-size: 0.8rem; color: #d1d5db; display: block; margin-top: 0.75rem; }
+CSS
+
 before do
   content_type :json
 end
@@ -59,6 +75,36 @@ helpers do
   end
 
   # ---------------------------------------------------------------------------
+  # Shared HTML layout — wraps every HTML page.
+  # Provides: DOCTYPE shell, shared CSS, shared footer.
+  # ---------------------------------------------------------------------------
+
+  def html_layout(title:, extra_css: "")
+    content = yield
+    <<~HTML
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>#{title}</title>
+        <style>
+          #{SHARED_CSS}
+          #{extra_css}
+        </style>
+      </head>
+      <body>
+        #{content}
+      <footer class="site-footer">
+          <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="tasnimr" data-color="#FFDD00" data-emoji="☕" data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff"></script>
+          <small>&copy; 2026 ROQOM</small>
+        </footer>
+      </body>
+      </html>
+    HTML
+  end
+
+  # ---------------------------------------------------------------------------
   # Health check logic — single function used by both /health and /health.json
   # ---------------------------------------------------------------------------
 
@@ -86,8 +132,8 @@ helpers do
       coverage_end   = T.order(Sequel.desc(:date)).first&.dig(:date)
       db_ok          = true
 
-      today_row     = T.where(date: today.to_s).first
-      today_data    = !today_row.nil?
+      today_row  = T.where(date: today.to_s).first
+      today_data = !today_row.nil?
 
       if today_data
         ordered = %i[subuh syuruk zohor asar maghrib isyak].map { |k| today_row[k] }
@@ -144,19 +190,139 @@ end
 
 get "/" do
   content_type "text/html"
-  <<~HTML
-    <h1>PrayertimesSG API</h1>
-    <p>Status: OK</p>
-    <ul>
-      <li><a href="/api/v1/prayer-times/today">/api/v1/prayer-times/today</a></li>
-      <li><a href="/api/v1/prayer-times?date=2026-01-01">/api/v1/prayer-times?date=YYYY-MM-DD</a></li>
-      <li><a href="/api/v1/prayer-times/month/2026/05">/api/v1/prayer-times/month/:year/:month</a></li>
-      <li><a href="/api/v1/prayer-times/year/2026">/api/v1/prayer-times/year/:year</a></li>
-      <li><a href="/health">/health</a></li>
-      <li><a href="/health.json">/health.json</a></li>
-    </ul>
-    <p>&copy; 2026 ROQOM</p>
-  HTML
+
+  coverage_start = T.order(:date).first&.dig(:date)
+  coverage_end   = T.order(Sequel.desc(:date)).first&.dig(:date)
+  total_records  = T.count
+
+  coverage_str = if coverage_start && coverage_end
+    "#{friendly_date(coverage_start)} &ndash; #{friendly_date(coverage_end)}"
+  else
+    "No data"
+  end
+
+  html_layout(title: "PrayerTimesSG API", extra_css: <<~CSS) do
+    body { background: #fff; }
+    .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem; }
+    header { margin-bottom: 2.5rem; }
+    header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+    .subtitle { font-size: 0.95rem; color: #6b7280; margin-bottom: 1rem; }
+    .badge-operational { display: inline-block; padding: 0.2em 0.75em; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; background: #dcfce7; color: #15803d; }
+    section { margin-bottom: 2.5rem; }
+    .endpoint-list { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
+    .endpoint { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: 0.8rem 1rem; border-bottom: 1px solid #f3f4f6; }
+    .endpoint:last-child { border-bottom: none; }
+    .method { font-size: 0.7rem; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 0.15em 0.5em; border-radius: 4px; flex-shrink: 0; }
+    .endpoint-path { font-family: ui-monospace, monospace; font-size: 0.85rem; font-weight: 500; color: #111827; flex: 1; }
+    .endpoint-desc { font-size: 0.8rem; color: #6b7280; text-align: right; flex-shrink: 0; }
+    @media (max-width: 540px) {
+      .endpoint { flex-wrap: wrap; gap: 0.3rem; }
+      .endpoint-desc { text-align: left; width: 100%; padding-left: calc(0.7rem + 1.5rem); }
+    }
+    .example { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 1rem 1.25rem; overflow-x: auto; }
+    .example pre { font-family: ui-monospace, monospace; font-size: 0.8rem; line-height: 1.7; color: #374151; white-space: pre; }
+  CSS
+    <<~BODY
+      <div class="container">
+
+        <header>
+          <h1>PrayerTimesSG API</h1>
+          <p class="subtitle">Reliable Singapore prayer times API based on the official MUIS prayer timetable.</p>
+          <span class="badge-operational">Operational</span>
+        </header>
+
+        <section>
+          <h2>Endpoints</h2>
+          <div class="endpoint-list">
+            <div class="endpoint">
+              <span class="method">GET</span>
+              <span class="endpoint-path"><a href="/api/v1/prayer-times/today">/api/v1/prayer-times/today</a></span>
+              <span class="endpoint-desc">Get today&#39;s prayer times.</span>
+            </div>
+            <div class="endpoint">
+              <span class="method">GET</span>
+              <span class="endpoint-path"><a href="/api/v1/prayer-times?date=2026-01-01">/api/v1/prayer-times?date=YYYY-MM-DD</a></span>
+              <span class="endpoint-desc">Get prayer times for a specific date.</span>
+            </div>
+            <div class="endpoint">
+              <span class="method">GET</span>
+              <span class="endpoint-path"><a href="/api/v1/prayer-times/month/2026/05">/api/v1/prayer-times/month/:year/:month</a></span>
+              <span class="endpoint-desc">Get prayer times for a specific month.</span>
+            </div>
+            <div class="endpoint">
+              <span class="method">GET</span>
+              <span class="endpoint-path"><a href="/api/v1/prayer-times/year/2026">/api/v1/prayer-times/year/:year</a></span>
+              <span class="endpoint-desc">Get prayer times for a specific year.</span>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>System</h2>
+          <div class="endpoint-list">
+            <div class="endpoint">
+              <span class="method">GET</span>
+              <span class="endpoint-path"><a href="/health">/health</a></span>
+              <span class="endpoint-desc">Human-readable health page.</span>
+            </div>
+            <div class="endpoint">
+              <span class="method">GET</span>
+              <span class="endpoint-path"><a href="/health.json">/health.json</a></span>
+              <span class="endpoint-desc">JSON health endpoint for monitoring.</span>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Data Source</h2>
+          <div class="info-grid">
+            <div class="info-row">
+              <span class="info-label">Source</span>
+              <span class="info-value">Official MUIS Prayer Timetable &mdash; <a href="https://data.gov.sg">data.gov.sg</a></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Coverage</span>
+              <span class="info-value">#{coverage_str}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Records Loaded</span>
+              <span class="info-value">#{total_records} days</span>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Example Response</h2>
+          <p style="font-size:0.8rem;color:#6b7280;margin-bottom:0.6rem;">GET /api/v1/prayer-times/today</p>
+          <div class="example">
+            <pre>{
+  "date": "2026-05-29",
+  "day": "Friday",
+  "friendly_date": "29 May 2026",
+  "hijri_date": "12 Zulhijjah 1447",
+  "times": {
+    "subuh":   "05:37",
+    "syuruk":  "07:01",
+    "zohor":   "13:04",
+    "asar":    "16:24",
+    "maghrib": "19:07",
+    "isyak":   "20:19"
+  },
+  "times_ampm": {
+    "subuh":   "5:37 AM",
+    "syuruk":  "7:01 AM",
+    "zohor":   "1:04 PM",
+    "asar":    "4:24 PM",
+    "maghrib": "7:07 PM",
+    "isyak":   "8:19 PM"
+  }
+}</pre>
+          </div>
+        </section>
+
+      </div>
+    BODY
+  end
 end
 
 # ---------------------------------------------------------------------------
@@ -271,12 +437,8 @@ get "/health" do
     "service_issue"      => "Service Issue"
   }.fetch(h[:status], "Unknown")
 
-  def check_cell(bool)
-    bool ? "<td class=\"pass\">&#10003; Pass</td>" : "<td class=\"fail\">&#10007; Fail</td>"
-  end
-
-  cov   = h[:coverage]
-  chk   = h[:checks]
+  cov = h[:coverage]
+  chk = h[:checks]
 
   coverage_str = if cov[:start_date] && cov[:end_date]
     "#{friendly_date(cov[:start_date])} &ndash; #{friendly_date(cov[:end_date])}"
@@ -284,55 +446,32 @@ get "/health" do
     "No data"
   end
 
-  <<~HTML
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>PrayerTimesSG API &mdash; Health</title>
-      <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: #f9fafb; color: #111827; line-height: 1.6; }
-        a { color: #4b5563; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+  pass_html = '<span class="pass">&#10003; Pass</span>'
+  fail_html = '<span class="fail">&#10007; Fail</span>'
 
-        header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb; background: #fff; display: flex; align-items: center; justify-content: space-between; }
-        header h1 { font-size: 1rem; font-weight: 600; }
-        header a { font-size: 0.85rem; color: #9ca3af; }
-
-        main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem; }
-
-        .status-card { padding: 1.25rem 1.5rem; border-radius: 10px; margin-bottom: 2rem; }
-        .status--green  { background: #f0fdf4; border: 1px solid #bbf7d0; }
-        .status--yellow { background: #fffbeb; border: 1px solid #fde68a; }
-        .status--red    { background: #fef2f2; border: 1px solid #fecaca; }
-
-        .badge { display: inline-block; padding: 0.2em 0.75em; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
-        .badge--green  { background: #dcfce7; color: #15803d; }
-        .badge--yellow { background: #fef9c3; color: #a16207; }
-        .badge--red    { background: #fee2e2; color: #b91c1c; }
-
-        .status-message { font-size: 0.925rem; color: #374151; }
-
-        section { margin-bottom: 2rem; }
-        h2 { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 0.75rem; }
-
-        .info-grid { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
-        .info-row { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 1rem; border-bottom: 1px solid #f3f4f6; font-size: 0.875rem; }
-        .info-row:last-child { border-bottom: none; }
-        .info-label { color: #6b7280; }
-        .info-value { font-weight: 500; text-align: right; }
-
-        .pass { color: #16a34a; font-weight: 600; }
-        .fail { color: #dc2626; font-weight: 600; }
-
-        footer { text-align: center; padding: 2.5rem 1rem 2rem; font-size: 0.8rem; color: #d1d5db; }
-      </style>
-    </head>
-    <body>
-
-      <header>
+  html_layout(title: "PrayerTimesSG API \u2014 Health", extra_css: <<~CSS) do
+    body { background: #f9fafb; }
+    a { color: #4b5563; }
+    .page-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb; background: #fff; display: flex; align-items: center; justify-content: space-between; }
+    .page-header h1 { font-size: 1rem; font-weight: 600; }
+    .page-header a { font-size: 0.85rem; color: #9ca3af; }
+    main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem; }
+    section { margin-bottom: 2rem; }
+    .status-card { padding: 1.25rem 1.5rem; border-radius: 10px; margin-bottom: 2rem; }
+    .status--green  { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .status--yellow { background: #fffbeb; border: 1px solid #fde68a; }
+    .status--red    { background: #fef2f2; border: 1px solid #fecaca; }
+    .badge { display: inline-block; padding: 0.2em 0.75em; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .badge--green  { background: #dcfce7; color: #15803d; }
+    .badge--yellow { background: #fef9c3; color: #a16207; }
+    .badge--red    { background: #fee2e2; color: #b91c1c; }
+    .status-message { font-size: 0.925rem; color: #374151; }
+    .info-grid { background: #fff; }
+    .pass { color: #16a34a; font-weight: 600; }
+    .fail { color: #dc2626; font-weight: 600; }
+  CSS
+    <<~BODY
+      <header class="page-header">
         <h1>PrayerTimesSG API</h1>
         <a href="/">&#8592; Back</a>
       </header>
@@ -371,27 +510,27 @@ get "/health" do
           <div class="info-grid">
             <div class="info-row">
               <span class="info-label">Database</span>
-              #{chk[:database] ? '<span class="pass">&#10003; Pass</span>' : '<span class="fail">&#10007; Fail</span>'}
+              #{chk[:database] ? pass_html : fail_html}
             </div>
             <div class="info-row">
               <span class="info-label">Today&#39;s Prayer Times</span>
-              #{chk[:today_data] ? '<span class="pass">&#10003; Pass</span>' : '<span class="fail">&#10007; Fail</span>'}
+              #{chk[:today_data] ? pass_html : fail_html}
             </div>
             <div class="info-row">
               <span class="info-label">Prayer Time Validation</span>
-              #{chk[:today_data_valid] ? '<span class="pass">&#10003; Pass</span>' : '<span class="fail">&#10007; Fail</span>'}
+              #{chk[:today_data_valid] ? pass_html : fail_html}
             </div>
             <div class="info-row">
               <span class="info-label">Tomorrow&#39;s Prayer Times</span>
-              #{chk[:tomorrow_data] ? '<span class="pass">&#10003; Pass</span>' : '<span class="fail">&#10007; Fail</span>'}
+              #{chk[:tomorrow_data] ? pass_html : fail_html}
             </div>
             <div class="info-row">
               <span class="info-label">Next 7 Days Available</span>
-              #{chk[:next_7_days_available] ? '<span class="pass">&#10003; Pass</span>' : '<span class="fail">&#10007; Fail</span>'}
+              #{chk[:next_7_days_available] ? pass_html : fail_html}
             </div>
             <div class="info-row">
               <span class="info-label">Latest Available Date in Future</span>
-              #{chk[:latest_date_in_future] ? '<span class="pass">&#10003; Pass</span>' : '<span class="fail">&#10007; Fail</span>'}
+              #{chk[:latest_date_in_future] ? pass_html : fail_html}
             </div>
             <div class="info-row">
               <span class="info-label">Response Time</span>
@@ -405,10 +544,6 @@ get "/health" do
         </section>
 
       </main>
-
-      <footer>&copy; 2026 ROQOM</footer>
-
-    </body>
-    </html>
-  HTML
+    BODY
+  end
 end
