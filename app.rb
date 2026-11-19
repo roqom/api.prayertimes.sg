@@ -191,6 +191,15 @@ end
 get "/" do
   content_type "text/html"
 
+  today = Time.now.getlocal("+08:00").to_date.to_s
+  today_row = T.where(date: today).first
+
+  example_json = if today_row
+    JSON.pretty_generate(serialize_row(today_row))
+  else
+    JSON.pretty_generate({ error: "No data for #{today}" })
+  end
+
   coverage_start = T.order(:date).first&.dig(:date)
   coverage_end   = T.order(Sequel.desc(:date)).first&.dig(:date)
   total_records  = T.count
@@ -295,28 +304,7 @@ get "/" do
           <h2>Example Response</h2>
           <p style="font-size:0.8rem;color:#6b7280;margin-bottom:0.6rem;">GET /api/v1/prayer-times/today</p>
           <div class="example">
-            <pre>{
-  "date": "2026-05-29",
-  "day": "Friday",
-  "friendly_date": "29 May 2026",
-  "hijri_date": "12 Zulhijjah 1447",
-  "times": {
-    "subuh":   "05:37",
-    "syuruk":  "07:01",
-    "zohor":   "13:04",
-    "asar":    "16:24",
-    "maghrib": "19:07",
-    "isyak":   "20:19"
-  },
-  "times_ampm": {
-    "subuh":   "5:37 AM",
-    "syuruk":  "7:01 AM",
-    "zohor":   "1:04 PM",
-    "asar":    "4:24 PM",
-    "maghrib": "7:07 PM",
-    "isyak":   "8:19 PM"
-  }
-}</pre>
+            <pre>#{Rack::Utils.escape_html(example_json)}</pre>
           </div>
         </section>
 
