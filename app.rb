@@ -20,7 +20,9 @@ SHARED_CSS = <<~CSS
   .info-label { color: #6b7280; }
   .info-value { font-weight: 500; text-align: right; }
   .site-footer { text-align: center; padding: 2rem 1.5rem 1.5rem; }
-  .site-footer small { font-size: 0.8rem; color: #d1d5db; display: block; margin-top: 0.75rem; }
+  .site-footer small { font-size: 0.8rem; color: #9ca3af; display: block; margin-top: 0.25rem; }
+  .site-footer a { color: inherit; font-weight: 500;}
+  .berlime-icon { width: 14px; height: 14px; vertical-align: -2px;margin: 0 3px 0 5px; }
 CSS
 
 before do
@@ -95,9 +97,17 @@ helpers do
       </head>
       <body>
         #{content}
-      <footer class="site-footer">
-          <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="tasnimr" data-color="#FFDD00" data-emoji="☕" data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff"></script>
-          <small>&copy; 2026 ROQOM</small>
+        <footer class="site-footer">
+          <small>&copy; 2026 Roqom</small>
+          <small>
+            Maintained by
+            <a href="https://berlime.com" target="_blank" rel="noopener noreferrer">
+              <img src="https://www.google.com/s2/favicons?domain=berlime.com&sz=64"
+                  alt=""
+                  class="berlime-icon">
+              berlime.com
+            </a>
+          </small>
         </footer>
       </body>
       </html>
@@ -212,12 +222,13 @@ get "/" do
 
   html_layout(title: "PrayerTimesSG API", extra_css: <<~CSS) do
     body { background: #fff; }
-    .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem; }
+    .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem 0; }
     header { margin-bottom: 2.5rem; }
     header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
     .subtitle { font-size: 0.95rem; color: #6b7280; margin-bottom: 1rem; }
     .badge-operational { display: inline-block; padding: 0.2em 0.75em; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; background: #dcfce7; color: #15803d; }
     section { margin-bottom: 2.5rem; }
+    .container > section:last-child { margin-bottom: 0; }
     .endpoint-list { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
     .endpoint { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: 0.8rem 1rem; border-bottom: 1px solid #f3f4f6; }
     .endpoint:last-child { border-bottom: none; }
